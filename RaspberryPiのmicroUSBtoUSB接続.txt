@@ -1,0 +1,22 @@
+RaspberryPiのmicroUSBtoUSB接続
+●「/boot/config.txt」の編集
+dwc2USBdriverの使用
+追記:dtoverlay=dwc2,g_serial
+●「/boot/cmdline.txt」の編集
+rootwaitの後に追記:
+modules-load=dwc2,g_serial
+●再起動
+
+●確認
+$ls -ltr /dev/tty* | tail -2
+「/dev/ttyGS0」が出てくる
+
+●RaspberryPi側の待ち受け
+$cat /dev/ttyGS0
+
+●PC側からメッセージを送る
+$echo "hello" > /dev/ttyACM0
+
+ラズベリーパイ側にメッセージが表示される
+●シリアルモジュールのアンロード
+$sudo modprobe -r g_serial
