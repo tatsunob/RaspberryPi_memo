@@ -1,0 +1,81 @@
+「RaspberryPiとWindowsPCのbluethooth通信」
+
+★WindowsPCのBluetooth物理アドレスの確認(windonsPC操作)
+コマンドプロンプトで「getmac /fo list /v」
+
+●Bluetooth系ツールのインストール
+$ sudo apt-get update
+$ sudo apt-get install bluetooth bluez blueman
+
+●「hichconfig」でデバイスがUP RUNNINGであることを確認
+
+●Bluetoothツールの起動
+$sudo bluetoothctl
+
+●「scan on」コマンドでBluetoothをスキャン
+[bluetooth]# scan on
+
+●目的のWindows-PCが検知できたら「scan off」コマンドでスキャンを停止
+[bluetooth]# scan off
+
+●pairコマンドで上で確認したWindows-PCのBluetooth MACアドレスを引数に実行
+[bluetooth]# pair 28:C2:DD:XX:XX:XX
+
+●次回以降に自動接続する場合trustコマンドを実行
+[bluetooth]# trust 28:C2:DD:XX:XX:XX
+
+●exitで抜ける
+
+●ペアリングの確認
+$sudo bluetoothctl
+
+●ペアリングの解除
+[bluetooth]# remove 28:C2:DD:XX:XX:XX
+―――――――――――――――――――――――――――――――
+●Raspberry PiでSDPサーバが使えるか確認
+$ sudo sdptool browse local
+
+●修正
+/etc/systemd/system/dbus-org.bluez.serviceを編集して
+bluetoothdの設定変更が必要らしいので、以下のように修正
+・変更前
+ExecStart=/usr/lib/bluetooth/bluetoothd
+・変更後
+ExecStart=/usr/lib/bluetooth/bluetoothd --compat
+
+●bluetoothdを再起動する。
+$ sudo systemctl daemon-reload
+$ sudo systemctl restart bluetooth
+
+●「$ sudo sdptool browse local」
+Service Name: Serial Portというサービスがない状態であることが
+分かるので、SPPを追加
+「$ sudo sdptool add --channel=22 SP」
+
+●コマンドでrfcommをリッスン状態にする
+$ sudo rfcomm listen /dev/rfcomm0 22
+
+●WindowsPC側の設定
+ペアリングした状態で以下を開く。
+コントロールパネル>ハードウェアとサウンド>デバイスとプリンター
+デバイスからペアリングしたRaspberry Piデバイスのプロパティを開く。
+「サービス」タブの「シリアルポート (SPP) 'Serial Port'」のチェックを入れる
+
+●Windows PCからRaspberry Piへデータ送信
+Tera Termで適当に文字列を入力してみる。
+シリアル通信は一文字ずつの送信なので
+特にEnterとかせずともメッセージは送信される。
+「ラズパイ側で確認」
+pi@raspberrypi:~ $ sudo cat /dev/rfcomm0
+
+●Raspberry PiからWindows PCへデータ送信
+pi@raspberrypi:~ $ sudo echo abcd > /dev/rfcomm0
+
+
+●RFCOMMはCtrl-Cで停止
+
+----------------------------------------------------------------------------------------------------
+●Bluetooth接続を確立させる自動起動スクリプト●
+※「/etc/rc.local」に追記
+sudo sdptool add --channel=22 SP
+sudo rfcomm listen /dev/rfcomm0 22&
